@@ -35,7 +35,7 @@ var app = app || {};
 				// explicitly bind `null` to `forceUpdate`, as it demands a callback and
 				// React validates that it's a function. `collection` events passes
 				// additional arguments that are not functions
-				collection.on('add remove change', this.forceUpdate.bind(this, null));
+				collection.on('add remove change sort', this.forceUpdate.bind(this, null));
 			}, this);
 		},
 
@@ -59,6 +59,7 @@ var app = app || {};
 		},
 
 		componentDidMount: function () {
+			// Init routes and bind this.state changes to them
 			var Router = Backbone.Router.extend({
 				routes: {
 					'': 'all',
@@ -72,6 +73,9 @@ var app = app || {};
 
 			new Router();
 			Backbone.history.start();
+
+			// default todos order - the one the user entered items
+			this.setState({sortMode: 'sortOrder'});
 
 			this.props.todos.fetch();
 		},
@@ -103,11 +107,21 @@ var app = app || {};
 			event.preventDefault();
 		},
 
-		toggleAll: function (event) {
-			var checked = event.target.checked;
-			this.props.todos.forEach(function (todo) {
-				todo.set('completed', checked);
-			});
+		sort: function (event) {
+			var sortModes = ['sortOrder','sortTitleAsc','sortTitleDesc'];
+
+			// select next sort mode
+			var nextSortMode = sortModes[(sortModes.indexOf(this.state.sortMode)+1)%3];
+			this.setState({sortMode: nextSortMode});
+
+			// change collection comparator
+			this.props.todos.comparator = nextSortMode ==='sortOrder' ? 'order' : function( a, b ) {
+				if(nextSortMode == 'sortTitleAsc') return a.get('title').localeCompare(b.get('title'));
+				if(nextSortMode == 'sortTitleDesc') return -a.get('title').localeCompare(b.get('title'));
+			};
+
+			// do sort
+			this.props.todos.sort();
 		},
 
 		edit: function (todo, callback) {
@@ -181,10 +195,10 @@ var app = app || {};
 				main = (
 					<section className="main">
 						<input
-							className="toggle-all"
+							className="sort-all"
 							type="checkbox"
-							onChange={this.toggleAll}
-							checked={activeTodoCount === 0}
+							onChange={this.sort}
+							data-sortmode={this.state.sortMode}
 						/>
 						<ul className="todo-list">
 							{todoItems}

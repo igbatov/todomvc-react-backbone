@@ -58,6 +58,7 @@ var app = app || {};
 
 		render: function () {
 			return (
+				// classNames returns string of keys that has true value
 				<li className={classNames({
 					completed: this.props.todo.get('completed'),
 					editing: this.props.editing
